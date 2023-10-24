@@ -1,4 +1,4 @@
-PKG := github.com/goccy/go-zetasqlite
+PKG := github.com/nutshelllabs/go-zetasqlite
 
 GOBIN := $(CURDIR)/bin
 PKGS := $(shell go list ./... | grep -v cmd | grep -v benchmarks )
