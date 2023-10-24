@@ -5,7 +5,7 @@
 ## Install
 
 ```console
-$ go install github.com/goccy/go-zetasqlite/cmd/zetasqlite-cli@latest
+$ go install github.com/nutshelllabs/go-zetasqlite/cmd/zetasqlite-cli@latest
 ```
 
 ## How to use
