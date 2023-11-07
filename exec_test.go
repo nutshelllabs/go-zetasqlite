@@ -219,6 +219,39 @@ func TestCreateTempTable(t *testing.T) {
 	}
 }
 
+func TestDeclare(t *testing.T) {
+	now := time.Now()
+	ctx := context.Background()
+	ctx = zetasqlite.WithCurrentTime(ctx, now)
+	db, err := sql.Open("zetasqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	rows, err := db.QueryContext(ctx, `
+DECLARE very_important_variable DEFAULT (SELECT 99);
+DECLARE some_dependent_variable DEFAULT (SELECT very_important_variable - 1);
+DECLARE one_more DEFAULT (SELECT some_dependent_variable + 1);
+
+SELECT one_more;
+`)
+  if err != nil {
+		t.Fatal(err)
+	}
+  defer rows.Close()
+  rows.Next()
+  var num int64
+  if err := rows.Scan(&num); err != nil {
+    t.Fatal(err)
+  }
+  if num != 99 {
+    t.Fatalf("failed to get declared value 99. got %d", num)
+  }
+  if rows.Err() != nil {
+    t.Fatal(rows.Err())
+  }
+}
+
 func TestWildcardTable(t *testing.T) {
 	ctx := context.Background()
 	db, err := sql.Open("zetasqlite", ":memory:")

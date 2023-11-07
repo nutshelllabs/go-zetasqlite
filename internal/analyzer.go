@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"strconv"
 	"strings"
+	"bufio"
 
 	"github.com/goccy/go-zetasql"
 	parsed_ast "github.com/goccy/go-zetasql/ast"
@@ -170,9 +172,84 @@ func (a *Analyzer) getParameterMode(stmt parsed_ast.StatementNode) (zetasql.Para
 	return zetasql.ParameterNamed, nil
 }
 
+type Error struct {
+	Msg                  string
+	Line                 int
+	Column               int
+	TermLength           int
+	IncompleteColumnName string
+}
+
+func (e Error) Error() string {
+	return fmt.Sprintf("%d:%d: %s", e.Line, e.Column, e.Msg)
+}
+
+func parseZetaSQLError(err error) Error {
+	errStr := err.Error()
+	if !strings.Contains(errStr, "[at ") {
+		return Error{Msg: errStr}
+	}
+
+	// extract position information like "... [at 1:28]"
+	positionInd := strings.Index(errStr, "[at ")
+	location := errStr[positionInd+4 : len(errStr)-1]
+	locationSep := strings.Split(location, ":")
+	line, _ := strconv.Atoi(locationSep[0])
+	col, _ := strconv.Atoi(locationSep[1])
+
+	// Trim position information
+  errStr = strings.TrimSpace(errStr[:positionInd])
+
+	// For the folowing error message:
+  // 	INVALID_ARGUMENT: Unrecognized name: invalid_column; Did you mean valid_column?
+	ind := strings.Index(errStr, "Unrecognized name: ")
+	if ind < 0 {
+	  return Error{Msg: errStr}
+	}
+
+  unrecognizedName := strings.TrimSpace(errStr[ind+len("Unrecognized name: "):])
+  if ind := strings.Index(unrecognizedName, ";"); ind != -1 {
+    unrecognizedName = unrecognizedName[:ind]
+  }
+
+	return Error{Msg: errStr, Line: line - 1, Column: col - 1, TermLength: len(unrecognizedName), IncompleteColumnName: unrecognizedName}
+}
+
+func positionToByteOffset(sql string, line int, column int) int {
+	buf := bufio.NewScanner(strings.NewReader(sql))
+	buf.Split(bufio.ScanLines)
+
+	var offset int
+	for i := 0; i < line; i++ {
+		buf.Scan()
+		offset += len([]byte(buf.Text())) + 1
+	}
+	offset += column
+	return offset
+}
+
+func fixDeclarationError(src string, parsedErr Error, defaultVal string) string {
+	errOffset := positionToByteOffset(src, parsedErr.Line, parsedErr.Column)
+	if errOffset == 0 || errOffset == len(src) {
+		return src
+	}
+
+	replaceOffset := errOffset + parsedErr.TermLength - len(parsedErr.IncompleteColumnName)
+
+	return src[:replaceOffset] + defaultVal + src[replaceOffset+len(parsedErr.IncompleteColumnName):]
+}
+
 type StmtActionFunc func() (StmtAction, error)
 
 func (a *Analyzer) Analyze(ctx context.Context, conn *Conn, query string, args []driver.NamedValue) ([]StmtActionFunc, error) {
+  return a.AnalyzeR(ctx, conn, query, args, 0)
+}
+
+func (a *Analyzer) AnalyzeR(ctx context.Context, conn *Conn, query string, args []driver.NamedValue, recursionDepth int) ([]StmtActionFunc, error) {
+  if recursionDepth > 100 {
+    return nil, fmt.Errorf("recursion is too deep: %d", recursionDepth)
+  }
+
 	if err := a.catalog.Sync(ctx, conn); err != nil {
 		return nil, fmt.Errorf("failed to sync catalog: %w", err)
 	}
@@ -185,8 +262,29 @@ func (a *Analyzer) Analyze(ctx context.Context, conn *Conn, query string, args [
 		funcMap[spec.FuncName()] = spec
 	}
 	actionFuncs := make([]StmtActionFunc, 0, len(stmts))
+	declarationMap := make(map[string]string)
 	for _, stmt := range stmts {
 		stmt := stmt
+		if stmt.Kind() == parsed_ast.VariableDeclaration {
+      node := stmt.(*parsed_ast.VariableDeclarationNode)
+      list := node.VariableList().IdentifierList()
+      for _, l := range list {
+        rng := node.DefaultValue().ParseLocationRange()
+        begin, _ := strconv.Atoi(rng.Start().String())
+        end, _ := strconv.Atoi(rng.End().String())
+        declarationMap[l.Name()] = query[begin:end]
+      }
+      continue
+    }
+
+    substitutedQuery, err := a.SubstituteDeclarationIfNeeded(stmt, query, declarationMap)
+    if err != nil {
+      return nil, fmt.Errorf("failed to analyze: %w", err)
+    }
+    if query != substitutedQuery {
+      return a.AnalyzeR(ctx, conn, substitutedQuery, args, recursionDepth + 1)
+    }
+
 		actionFuncs = append(actionFuncs, func() (StmtAction, error) {
 			mode, err := a.getParameterMode(stmt)
 			if err != nil {
@@ -215,6 +313,33 @@ func (a *Analyzer) Analyze(ctx context.Context, conn *Conn, query string, args [
 		})
 	}
 	return actionFuncs, nil
+}
+
+func (a *Analyzer) SubstituteDeclarationIfNeeded(stmt parsed_ast.Node, query string, declarationMap map[string]string) (string, error) {
+  mode, err := a.getParameterMode(stmt)
+  if err != nil {
+    return "", err
+  }
+  a.opt.SetParameterMode(mode)
+  _, err = zetasql.AnalyzeStatementFromParserAST(
+    query,
+    stmt,
+    a.catalog,
+    a.opt,
+  )
+  if err != nil {
+    if len(declarationMap) > 0 {
+      parsedErr := parseZetaSQLError(err)
+      replacementSql, containsKey := declarationMap[parsedErr.IncompleteColumnName]
+      if containsKey {
+        // substitute and try again
+        return fixDeclarationError(query, parsedErr, replacementSql), nil
+      } else {
+        return "", err
+      }
+    }
+  }
+  return query, nil
 }
 
 func (a *Analyzer) context(
