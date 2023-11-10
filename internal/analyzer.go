@@ -242,17 +242,11 @@ func fixDeclarationError(src string, parsedErr Error, defaultVal string) string 
 type StmtActionFunc func() (StmtAction, error)
 
 func (a *Analyzer) Analyze(ctx context.Context, conn *Conn, query string, args []driver.NamedValue) ([]StmtActionFunc, error) {
-  return a.AnalyzeR(ctx, conn, query, args, 0)
-}
-
-func (a *Analyzer) AnalyzeR(ctx context.Context, conn *Conn, query string, args []driver.NamedValue, recursionDepth int) ([]StmtActionFunc, error) {
-  if recursionDepth > 100 {
-    return nil, fmt.Errorf("recursion is too deep: %d", recursionDepth)
-  }
-
 	if err := a.catalog.Sync(ctx, conn); err != nil {
 		return nil, fmt.Errorf("failed to sync catalog: %w", err)
 	}
+
+startOver:
 	stmts, err := a.parseScript(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse statements: %w", err)
@@ -269,10 +263,8 @@ func (a *Analyzer) AnalyzeR(ctx context.Context, conn *Conn, query string, args 
       node := stmt.(*parsed_ast.VariableDeclarationNode)
       list := node.VariableList().IdentifierList()
       for _, l := range list {
-        rng := node.DefaultValue().ParseLocationRange()
-        begin, _ := strconv.Atoi(rng.Start().String())
-        end, _ := strconv.Atoi(rng.End().String())
-        declarationMap[l.Name()] = query[begin:end]
+        value, _, _ := subqueryForNode(node.DefaultValue(), query)
+        declarationMap[l.Name()] = value
       }
       continue
     }
@@ -282,7 +274,8 @@ func (a *Analyzer) AnalyzeR(ctx context.Context, conn *Conn, query string, args 
       return nil, fmt.Errorf("failed to analyze: %w", err)
     }
     if query != substitutedQuery {
-      return a.AnalyzeR(ctx, conn, substitutedQuery, args, recursionDepth + 1)
+      query = substitutedQuery
+      goto startOver
     }
 
 		actionFuncs = append(actionFuncs, func() (StmtAction, error) {
@@ -315,7 +308,64 @@ func (a *Analyzer) AnalyzeR(ctx context.Context, conn *Conn, query string, args 
 	return actionFuncs, nil
 }
 
+func subqueryForNode(node parsed_ast.Node, query string) (string, int, int) {
+  rng := node.ParseLocationRange()
+  begin, _ := strconv.Atoi(rng.Start().String())
+  end, _ := strconv.Atoi(rng.End().String())
+  return query[begin:end], begin, end
+}
+
+func Visit(n parsed_ast.Node, cb func(parsed_ast.Node) string) string {
+	if res := cb(n); res != "" {
+		return res
+	}
+	if n == nil {
+		return ""
+	}
+	for i := 0; i < n.NumChildren(); i++ {
+		nn := n.Child(i)
+		if res := Visit(nn, cb); res != "" {
+			return res
+		}
+	}
+	return ""
+}
+
+func SubstituteDeclarationIfNeeded_Dumb(stmt parsed_ast.Node, query string, declarationMap map[string]string) string {
+  if len(declarationMap) == 0 {
+    return query
+  }
+
+  newQuery := Visit(stmt, func(n parsed_ast.Node) string {
+    ident, ok := n.(*parsed_ast.IdentifierNode)
+    if ok {
+      _, isAlias := ident.Parent().(*parsed_ast.AliasNode)
+      if isAlias {
+        // ignore aliases
+        return ""
+      }
+
+      name := ident.Name()
+      if name != "" {
+        if substitution, exists := declarationMap[name]; exists {
+          _, begin, end := subqueryForNode(ident, query)
+          return query[:begin] + substitution + query[end:]
+        }
+      }
+    }
+    return ""
+  })
+  if newQuery != "" && newQuery != query {
+    return newQuery
+  }
+  return query
+}
+
 func (a *Analyzer) SubstituteDeclarationIfNeeded(stmt parsed_ast.Node, query string, declarationMap map[string]string) (string, error) {
+  if len(declarationMap) == 0 {
+    return query, nil
+  }
+
   mode, err := a.getParameterMode(stmt)
   if err != nil {
     return "", err

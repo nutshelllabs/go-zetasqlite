@@ -231,7 +231,7 @@ func TestDeclare(t *testing.T) {
 	rows, err := db.QueryContext(ctx, `
 DECLARE very_important_variable DEFAULT (SELECT 99);
 DECLARE some_dependent_variable DEFAULT (SELECT very_important_variable - 1);
-DECLARE one_more DEFAULT (SELECT some_dependent_variable + 1);
+DECLARE one_more DEFAULT (SELECT some_dependent_variable + 1 as very_important_variable);
 
 SELECT one_more;
 `)
