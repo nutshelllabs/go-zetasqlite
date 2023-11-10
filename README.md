@@ -11,7 +11,7 @@ A database driver library that interprets ZetaSQL queries and runs them using SQ
 `go-zetasqlite` supports `database/sql` driver interface.
 So, you can use ZetaSQL queries just by importing `github.com/nutshelllabs/go-zetasqlite`.
 Also, go-zetasqlite uses SQLite3 as the database engine.
-Since we are using [go-sqlite3](https://github.com/mattn/go-sqlite3), we can use the options ( like `:memory:` ) supported by `go-sqlite3` ( see [details](https://pkg.go.dev/github.com/mattn/go-sqlite3#readme-connection-string) ).
+Since we are using [go-sqlite3](https://github.com/nutshelllabs/go-sqlite3), we can use the options ( like `:memory:` ) supported by `go-sqlite3` ( see [details](https://pkg.go.dev/github.com/nutshelllabs/go-sqlite3#readme-connection-string) ).
 ZetaSQL functionality is provided by [go-zetasql](https://github.com/goccy/go-zetasql)
 
 # Installation

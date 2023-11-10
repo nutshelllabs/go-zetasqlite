@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/goccy/go-zetasql v0.5.1
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/nutshelllabs/go-sqlite3 v1.14.16-nutshell-2
 )
 
 require github.com/google/go-cmp v0.5.9
@@ -22,6 +22,7 @@ require (
 	github.com/DataDog/go-hll v1.0.2
 	github.com/dop251/goja v0.0.0-20221118162653-d4bf6fde1b86
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72
+	golang.org/x/net v0.8.0
 	golang.org/x/text v0.8.0
 )
 
@@ -51,7 +52,6 @@ require (
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.6.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect

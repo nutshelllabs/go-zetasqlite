@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/goccy/go-json"
-	"github.com/mattn/go-sqlite3"
+	"github.com/nutshelllabs/go-sqlite3"
 )
 
 var normalFuncs = []*FuncInfo{

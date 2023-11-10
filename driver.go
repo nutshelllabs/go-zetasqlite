@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	internal "github.com/nutshelllabs/go-zetasqlite/internal"
-	"github.com/mattn/go-sqlite3"
+	"github.com/nutshelllabs/go-sqlite3"
 )
 
 var (
@@ -31,6 +31,7 @@ func init() {
 				return err
 			}
 			conn.SetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, -1)
+			conn.SetLimit(sqlite3.SQLITE_LIMIT_EXPR_DEPTH, 1_000_000)
 			return nil
 		},
 	})
