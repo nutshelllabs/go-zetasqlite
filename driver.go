@@ -28,6 +28,12 @@ func init() {
 	sql.Register("zetasqlite", &ZetaSQLiteDriver{})
 	sql.Register("zetasqlite_sqlite3", &sqlite3.SQLiteDriver{
 		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+			if _, err := conn.Exec("PRAGMA temp_store = 2;", nil); err != nil {
+				return err
+			}
+			if _, err := conn.Exec("PRAGMA cache_size = -20000;", nil); err != nil {
+				return err
+			}
 			if err := internal.RegisterFunctions(conn); err != nil {
 				return err
 			}
