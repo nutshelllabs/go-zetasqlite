@@ -34,6 +34,12 @@ func init() {
 			if _, err := conn.Exec("PRAGMA cache_size = -20000;", nil); err != nil {
 				return err
 			}
+			if _, err := conn.Exec("PRAGMA synchronous = OFF;", nil); err != nil {
+				return err
+			}
+			if _, err := conn.Exec("PRAGMA journal_mode = MEMORY;", nil); err != nil {
+				return err
+			}
 			if err := internal.RegisterFunctions(conn); err != nil {
 				return err
 			}
