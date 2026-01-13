@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/goccy/go-zetasqlite"
+	"github.com/nutshelllabs/go-zetasqlite"
 )
 
 func TestTimestamp(t *testing.T) {

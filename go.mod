@@ -1,4 +1,4 @@
-module github.com/goccy/go-zetasqlite
+module github.com/nutshelllabs/go-zetasqlite
 
 go 1.19
 

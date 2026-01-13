@@ -15,7 +15,7 @@ linters-settings:
     min-confidence: 0
 
   goimports:
-    local-prefixes: github.com/goccy/go-zetasqlite
+    local-prefixes: github.com/nutshelllabs/go-zetasqlite
 
   gocyclo:
     min-complexity: 10
@@ -56,7 +56,7 @@ linters-settings:
     sections:
       - "standard"
       - "default"
-      - "prefix(github.com/goccy/go-zetasqlite)"
+      - "prefix(github.com/nutshelllabs/go-zetasqlite)"
       - "blank"
       - "dot"
 

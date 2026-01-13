@@ -1,4 +1,4 @@
-module github.com/goccy/go-zetasqlite/cmd/zetasqlite-cli
+module github.com/nutshelllabs/go-zetasqlite/cmd/zetasqlite-cli
 
 go 1.21
 
@@ -6,8 +6,8 @@ require (
 	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.15.0
 	github.com/goccy/go-zetasql v0.5.5
-	github.com/goccy/go-zetasqlite v0.4.0
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/nutshelllabs/go-zetasqlite v0.4.0
 	github.com/olekukonko/tablewriter v0.0.5
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 )
@@ -41,7 +41,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
-	github.com/mattn/go-sqlite3 v1.14.16 // indirect
+	github.com/mattn/go-sqlite3 v1.14.33 // indirect
 	github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 // indirect
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
@@ -65,4 +65,4 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 )
 
-replace github.com/goccy/go-zetasqlite => ../../
+replace github.com/nutshelllabs/go-zetasqlite => ../../

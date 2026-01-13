@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	zetasqlite "github.com/goccy/go-zetasqlite"
+	zetasqlite "github.com/nutshelllabs/go-zetasqlite"
 )
 
 func TestQuery(t *testing.T) {
@@ -40,7 +40,7 @@ func TestQuery(t *testing.T) {
 		expectedRows [][]interface{}
 		expectedErr  string
 	}{
-		// Regression test for https://github.com/goccy/go-zetasqlite/issues/191
+		// Regression test for https://github.com/nutshelllabs/go-zetasqlite/issues/191
 		{
 			name: "distinct union",
 			query: `WITH toks AS (SELECT true AS x, 1 AS y)
@@ -2160,7 +2160,7 @@ FROM finishers`,
 				{"Suzy Slane", createTimestampFormatFromString("2016-10-18 03:06:24+00"), "F35-39", "Desiree Berry"},
 			},
 		},
-		// Regression test for https://github.com/goccy/go-zetasqlite/issues/160
+		// Regression test for https://github.com/nutshelllabs/go-zetasqlite/issues/160
 		{
 			name: "window partitions are distinct from each other",
 			query: `

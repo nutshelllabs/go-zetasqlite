@@ -9,7 +9,7 @@ import (
 
 	"github.com/mattn/go-sqlite3"
 
-	internal "github.com/goccy/go-zetasqlite/internal"
+	internal "github.com/nutshelllabs/go-zetasqlite/internal"
 )
 
 var (

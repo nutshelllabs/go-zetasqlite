@@ -14,9 +14,9 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/goccy/go-zetasql/types"
-	"github.com/goccy/go-zetasqlite"
-	"github.com/goccy/go-zetasqlite/internal"
 	"github.com/jessevdk/go-flags"
+	"github.com/nutshelllabs/go-zetasqlite"
+	"github.com/nutshelllabs/go-zetasqlite/internal"
 	"github.com/olekukonko/tablewriter"
 	"golang.org/x/crypto/ssh/terminal"
 )
