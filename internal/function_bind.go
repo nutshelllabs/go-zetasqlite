@@ -3053,6 +3053,22 @@ func bindMakeArray(args ...Value) (Value, error) {
 	return MAKE_ARRAY(args...)
 }
 
+// bindTaggedBool re-tags a BOOL expression so that its type survives being
+// passed as an argument to another function. See TaggedBoolValue.
+func bindTaggedBool(args ...Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("TAGGED_BOOL: invalid argument num %d", len(args))
+	}
+	if args[0] == nil {
+		return nil, nil
+	}
+	b, err := args[0].ToBool()
+	if err != nil {
+		return nil, err
+	}
+	return TaggedBoolValue{BoolValue: BoolValue(b)}, nil
+}
+
 func bindMakeStruct(args ...Value) (Value, error) {
 	if len(args)%2 != 0 {
 		return nil, fmt.Errorf("MAKE_STRUCT: unexpected argument num %d", len(args))

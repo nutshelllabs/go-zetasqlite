@@ -5,6 +5,7 @@ import (
 	"fmt"
 	parsed_ast "github.com/goccy/go-zetasql/ast"
 	ast "github.com/goccy/go-zetasql/resolved_ast"
+	"github.com/goccy/go-zetasql/types"
 	"strings"
 )
 
@@ -182,6 +183,28 @@ func getZetasqliteFuncName(ctx context.Context, node *ast.BaseFunctionCallNode, 
 	return funcName, nil
 }
 
+// typeNeedsBoolTag reports whether t is a BOOL that would lose its type when
+// passed as an argument to another function.
+func typeNeedsBoolTag(t types.Type) bool {
+	return t != nil && t.Kind() == types.BOOL
+}
+
+// tagBoolArgument wraps a BOOL expression so the receiving function sees a
+// BoolValue rather than an IntValue. See TaggedBoolValue for why this is
+// needed.
+func tagBoolArgument(expr ExpressionData) ExpressionData {
+	return NewFunctionCallExpressionData("zetasqlite_tagged_bool", expr)
+}
+
+// boolTaggingFuncs are the functions whose output depends on the declared type
+// of their argument, so a BOOL argument has to keep its type.
+var boolTaggingFuncs = map[string]bool{
+	"zetasqlite_to_json":             true,
+	"zetasqlite_to_json_string":      true,
+	"zetasqlite_safe_to_json":        true,
+	"zetasqlite_safe_to_json_string": true,
+}
+
 // extractFunctionCallData extracts data from function call nodes
 func (e *NodeExtractor) extractFunctionCallData(node *ast.BaseFunctionCallNode, ctx TransformContext, isWindowFunc bool) (ExpressionData, error) {
 	// Extract function name
@@ -241,6 +264,14 @@ func (e *NodeExtractor) extractFunctionCallData(node *ast.BaseFunctionCallNode, 
 				Signature: signature,
 			},
 		}, nil
+	}
+
+	if boolTaggingFuncs[funcName] {
+		for i, arg := range node.ArgumentList() {
+			if i < len(arguments) && typeNeedsBoolTag(arg.Type()) {
+				arguments[i] = tagBoolArgument(arguments[i])
+			}
+		}
 	}
 
 	return ExpressionData{
@@ -365,6 +396,9 @@ func (e *NodeExtractor) extractMakeStructData(node *ast.MakeStructNode, ctx Tran
 		fieldExpr, err := e.ExtractExpressionData(field, ctx)
 		if err != nil {
 			return ExpressionData{}, fmt.Errorf("failed to extract struct field: %w", err)
+		}
+		if typeNeedsBoolTag(structType.Field(i).Type()) {
+			fieldExpr = tagBoolArgument(fieldExpr)
 		}
 		fieldArgs = append(fieldArgs, fieldExpr)
 	}

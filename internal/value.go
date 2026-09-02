@@ -818,6 +818,20 @@ func (nv *NumericValue) Interface() interface{} {
 
 type BoolValue bool
 
+// TaggedBoolValue is a BoolValue that keeps its type across the SQLite value
+// boundary.
+//
+// A plain BoolValue is encoded as a raw SQLite integer so that boolean
+// expressions can be used directly where SQLite expects a truthy value, such as
+// a WHERE clause. That representation is indistinguishable from INT64 on the
+// way back, so a BOOL argument reaches a function like TO_JSON as an IntValue
+// and renders as 1/0. Wrapping such an argument in zetasqlite_tagged_bool makes
+// it encode as a tagged value layout instead, which decodes back to a plain
+// BoolValue.
+type TaggedBoolValue struct {
+	BoolValue
+}
+
 func (bv BoolValue) Add(v Value) (Value, error) {
 	return nil, fmt.Errorf("add operation is unsupported for bool %v", bv)
 }

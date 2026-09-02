@@ -6526,6 +6526,46 @@ FROM CoordinatesTable AS t`,
 			},
 		},
 		{
+			// BOOL is stored as a raw SQLite integer, so without an explicit
+			// type tag it reaches TO_JSON as INT64 and renders as 1/0.
+			name:         "to_json_bool_literal",
+			query:        `SELECT TO_JSON_STRING(true) AS t, TO_JSON_STRING(false) AS f, JSON_TYPE(TO_JSON(true)) AS typ`,
+			expectedRows: [][]interface{}{{`true`, `false`, `boolean`}},
+		},
+		{
+			name:         "to_json_bool_expression",
+			query:        `SELECT TO_JSON_STRING(1 = 1) AS eq, TO_JSON_STRING(NOT true) AS neg`,
+			expectedRows: [][]interface{}{{`true`, `false`}},
+		},
+		{
+			name: "to_json_bool_column",
+			query: `
+With FlagTable AS (
+    (SELECT 1 AS id, true AS flag) UNION ALL
+    (SELECT 2 AS id, false AS flag))
+SELECT TO_JSON_STRING(flag) AS scalar, TO_JSON_STRING(STRUCT(flag)) AS in_struct, TO_JSON_STRING(t) AS row_json
+FROM FlagTable AS t ORDER BY id`,
+			expectedRows: [][]interface{}{
+				{`true`, `{"flag":true}`, `{"id":1,"flag":true}`},
+				{`false`, `{"flag":false}`, `{"id":2,"flag":false}`},
+			},
+		},
+		{
+			name:         "to_json_bool_null",
+			query:        `SELECT TO_JSON_STRING(CAST(NULL AS BOOL)) AS a`,
+			expectedRows: [][]interface{}{{`null`}},
+		},
+		{
+			// Tagging must not disturb the ordinary truthiness of BOOL in SQLite.
+			name: "bool_still_usable_as_predicate",
+			query: `
+With FlagTable AS (
+    (SELECT 1 AS id, true AS flag) UNION ALL
+    (SELECT 2 AS id, false AS flag))
+SELECT id FROM FlagTable WHERE flag`,
+			expectedRows: [][]interface{}{{int64(1)}},
+		},
+		{
 			name: "compare_arrays_with_json_null_only",
 			query: `
 WITH input_rows AS (

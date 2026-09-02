@@ -247,6 +247,7 @@ var normalFuncs = []*FuncInfo{
 	{Name: "generate_date_array", BindFunc: bindGenerateDateArray},
 	{Name: "generate_timestamp_array", BindFunc: bindGenerateTimestampArray},
 	{Name: "array_reverse", BindFunc: bindArrayReverse},
+	{Name: "tagged_bool", BindFunc: bindTaggedBool},
 	{Name: "make_array", BindFunc: bindMakeArray},
 	{Name: "make_struct", BindFunc: bindMakeStruct},
 

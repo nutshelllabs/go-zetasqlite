@@ -622,6 +622,11 @@ func encodeNamedValue(v driver.NamedValue, param *ast.ParameterNode) (sql.NamedA
 
 func valueLayoutFromValue(v Value) (*ValueLayout, error) {
 	switch vv := v.(type) {
+	case TaggedBoolValue:
+		return &ValueLayout{
+			Header: BoolValueType,
+			Body:   strconv.FormatBool(bool(vv.BoolValue)),
+		}, nil
 	case StringValue:
 		return &ValueLayout{
 			Header: StringValueType,
