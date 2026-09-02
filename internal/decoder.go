@@ -40,6 +40,12 @@ func DecodeValue(v driver.Value) (Value, error) {
 
 func decodeFromValueLayout(layout *ValueLayout) (Value, error) {
 	switch layout.Header {
+	case BoolValueType:
+		b, err := strconv.ParseBool(layout.Body)
+		if err != nil {
+			return nil, err
+		}
+		return BoolValue(b), nil
 	case StringValueType:
 		return StringValue(layout.Body), nil
 	case BytesValueType:
